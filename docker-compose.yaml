@@ -1,0 +1,84 @@
+version: '3.1'
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER
+      - RABBITMQ_DEFAULT_PASS
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  db:
+    image: postgres:14-bullseye
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    healthcheck:
+      test: pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    ports:
+      - '5432:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  location:
+    build: ./location
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - RABBIT_PORT=5672
+      - RABBIT_QUEUE=location
+      - RABBIT_USERNAME=$RABBITMQ_DEFAULT_USER
+      - RABBIT_PASSWORD=$RABBITMQ_DEFAULT_PASS
+    ports:
+      - '8081:8000'
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  query:
+    build: ./query
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=$POSTGRES_USER
+      - DB_PASSWORD=$POSTGRES_PASSWORD
+      - DB_NAME=$POSTGRES_DB
+    ports:
+      - '8082:8000'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  etl:
+    build: ./etl
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - RABBIT_PORT=5672
+      - RABBIT_QUEUE=location
+      - RABBIT_USERNAME=$RABBITMQ_DEFAULT_USER
+      - RABBIT_PASSWORD=$RABBITMQ_DEFAULT_PASS
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=$POSTGRES_USER
+      - DB_PASSWORD=$POSTGRES_PASSWORD
+      - DB_NAME=$POSTGRES_DB
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+volumes:
+  rabbitmq-data:
+  db-data:
