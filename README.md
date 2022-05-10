@@ -37,7 +37,7 @@ Crear un servicio REST que:
 - El microservicio **Query** ejecuta las consultas sobre las visitas y los movimientos de los Houmers a partir de la información contenida en la base de datos.
 
 #### 2.2.1. Diagrama del sistema
-![Diagrama del sistema]("diagram.png")
+![Diagrama del sistema](diagram.png)
 
 #### 2.2.2. Justificación del diseño
 - Dependiendo de la cantidad de Houmers activos, la cantidad de llamadas al endpoint que recibe sus ubicaciones puede ser muy grande. Al mover el trabajo de procesar e insertar los datos en la DB a una cola de trabajo, se disminuye el costo en tiempo y recursos de cada request, disminuyendo las probabilidades de que estos terminen en un timeout.
